@@ -105,7 +105,7 @@ def undulator_design(A_contents):
     quadd=A_contents['quadd']
     nsec=A_contents['nsec']
     aw0 = A_contents['aw0']
-    drl = int((drl-nwig)/2)
+    drl = int((fl+drl-nwig)/2)-1
    
    # Instance of the Undulator object
     und= Undulator(lperiod=xlamd, nperiods=nwig, Kx=aw0*sqrt(0.5))
