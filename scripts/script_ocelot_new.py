@@ -9,6 +9,7 @@ HMCC: 16-02-17 Initial prototype. Including Scan over parameters (from input fil
                 and noise realisations. Things still to be implemented: Postprocessing,
                 matching of the beam (via betamatch or using the other methods within the 
                 OCELOT framework), tapering, wakefields.
+HMCC: 21-02-17: Adding the function to extract the information from an existent GENESIS input file. The GENESIS input file should be in the root directory where the script input file and the script are located.
 
 
 '''
@@ -26,6 +27,7 @@ from ocelot.optics.elements import Filter_freq
 import ocelot.cpbd.elements
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 ### Path where OCELOT is being installed
 sys.path.append('/home/qfi29231/.local/lib/python2.7/site-packages/Ocelot-16.8rc0-py2.7.egg/ocelot/')
@@ -48,6 +50,46 @@ def get_immediate_subdirectories(a_dir):
 #                setattr(inp,splitLine[0],splitLine[-1])
 #    f.close()
 #    return inp
+def read_GEN_input_file(filename):
+    from ocelot.adaptors.genesis import GenesisInput
+    A_input = GenesisInput()
+    with open(filename, 'r') as f:
+        for line in f:
+            if not line.strip():
+                continue
+            else:
+                splitLine = line.rsplit('=')
+                if splitLine[0].startswith('alphax'):
+                    splitLine[0]=splitLine[0].replace('=','').rstrip()
+                else:
+                    splitLine[0]=splitLine[0][1:].replace('=','').rstrip()
+                splitLine[-1] = splitLine[-1].replace('D+','e').replace('D-','e-').replace('\n','')
+                splitLine[-1] = splitLine[-1].replace('E+','e').replace('E-','e-').replace('\n','')
+                if (splitLine[0].startswith('$n')) or (splitLine[0].find('filetype')!=-1):
+                    continue
+                elif(splitLine[0].startswith('$end')):
+                    break
+                elif (str(splitLine[0]).startswith('i') or str(splitLine[0]).startswith('n') 
+                      or str(splitLine[0]).startswith('lbc') or str(splitLine[0]).startswith('mag') 
+                      or str(splitLine[0]).startswith('ffspec') or str(splitLine[0]).startswith('convharm') 
+                      or str(splitLine[0]).startswith('multconv')):
+                    val_attr = int(float(splitLine[-1].replace('=',"")))
+                elif str(splitLine[0]).startswith('xk') :
+                    val_attr = int(float(splitLine[-1].replace('=',"")))
+                elif (splitLine[0].startswith('outputfile')):
+                    continue
+                    #val_attr = str(splitLine[-1].replace('=',""))
+                elif (splitLine[0].startswith('wcoefz')):
+                    val_attr = [float(splitLine[-1][2:].rsplit(' ')[i]) for i in range(0,7,3)] 
+                elif (splitLine[0].startswith('lout')):                
+                    val_attr = [int(float(l_out)) for l_out in splitLine[-1][1:].rsplit(' ')]
+                elif(splitLine[0].startswith('alpha')):
+                    val_attr = float(splitLine[-1].replace('=',""))   
+                else:
+                    val_attr = float(splitLine[-1].replace('=',""))               
+                setattr(A_input,str(splitLine[0]),val_attr)                
+    f.close()
+    return A_input
 
 def read_input_file(f_path):
     if (f_path.endswith('/') is not 'True'):
@@ -155,6 +197,14 @@ def main():
     from ocelot.common import globals
     from ocelot.adaptors.genesis import generate_input,generate_lattice
     from ocelot.utils.xfel_utils import get_genesis_launcher,run
+
+    # Setting off LaTeX in order to avoid the error when a plot is generated.
+
+    plt.rcParams['text.usetex']=False
+    plt.rcParams['text.latex.unicode']=False
+
+    # Reading the input file
+
     A_input = read_input_file(os.getcwd()+'/')
     A_beam = ['xlamds','gamma0','curlen','curpeak','delgam','rxbeam','rybeam','emitx','emity','alphax','alphay','nslice']
     A_simul = ['zsep','npart','ncar','delz','dmpfld','fbess0','dgrid','rmax0']
@@ -215,6 +265,7 @@ def main():
             
             print('+++++ Starting simulation of noise realisation {}'.format(run_id))
             g = run(inp,launcher)
+            
 
 ################## END OF METHODS ############################################
 if __name__=="__main__":
