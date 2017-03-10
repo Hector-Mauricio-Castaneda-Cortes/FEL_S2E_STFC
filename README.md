@@ -23,3 +23,26 @@ and a ascript that allows us to run GENESIS v2 and v3  (noise realisations, scan
    - Wakefields (using GenWake or the functions already implemented by the OCELOT developing team).
    
    HMCC
+   
+   # 10/03/17
+   
+   Several features have been added to the Script: 
+    - Single runs
+    - Statistical runs (reading the input_file.in)
+    - Possibility to do quad scans in steady state (scan over quadd, quadf, fl, drl) and using betamatch for the rematching.
+    - Support for steady state runs
+     - Reading from an external input file (still in progress. The function to read  the file has been implemented and used for the rematching in betamatch. However, I haven't tried to use an existent GENESIS input file for simulation purposes yet).
+     
+     - Postprocessing:
+         -- Use of the function gen_outplot_statistics (implemented within OCELOT and modified) for the plotting of statistical runs. So far, the generated plots show the slice properties at the end of the undulator (power curve,bunching parameter,  phase of the on-axis electric field,on axis spectral density,  as a function of s) and peak power and pulse energy curves as a function of z. As outlook, average power over s, bunching parameter over s as a function of z need to be implemented in the script. It generates 6 png plots in a separate folder called 'results'.
+         -- Implementation of the gen_outplot_single within the script (similar to the implementation in OCELOT): This function is called when the simulations are not set to be in statistical mode (number of noise realisations =1). The function supports the plotting of a single run (slice properties at the end of the undulator and mean and peak power and energy as a function of z), scan over quads (quadf). When I did the scan over wavelengths, the routine stops working (work in progress). it generates 9 png plots in a separate folder called 'results'
+         
+  Before the script is used, you need to replace the following scripts within ocelot:
+     - /ocelot/adaptors/genesis.py
+     - /ocelot/utils/xfel_utils.py
+     - /ocelot/gui/genesis_plot.py
+  by the versions that have been updated within this repository
+   Delete the files
+   - /ocelot/adaptors/genesis.pyc     - /ocelot/utils/xfel_utils.pyc     - /ocelot/gui/genesis_plot.pyc
+   The script requires the input_file.in to be located within the same folder where the script is being run. The betamatch executable is copied from /scratch2b/qfi29231/
+   
