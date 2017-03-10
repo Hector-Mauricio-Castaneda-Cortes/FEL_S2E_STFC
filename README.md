@@ -38,11 +38,11 @@ and a ascript that allows us to run GENESIS v2 and v3  (noise realisations, scan
          -- Implementation of the gen_outplot_single within the script (similar to the implementation in OCELOT): This function is called when the simulations are not set to be in statistical mode (number of noise realisations =1). The function supports the plotting of a single run (slice properties at the end of the undulator and mean and peak power and energy as a function of z), scan over quads (quadf). When I did the scan over wavelengths, the routine stops working (work in progress). it generates 9 png plots in a separate folder called 'results'
          
 Before the script is used, you need to replace the following scripts within ocelot:
-     - /ocelot/adaptors/genesis.py
-     - /ocelot/utils/xfel_utils.py
-     - /ocelot/gui/genesis_plot.py
-by the versions that have been updated within this repository
-   Delete the files
+  - /ocelot/adaptors/genesis.py
+  - /ocelot/utils/xfel_utils.py
+  - /ocelot/gui/genesis_plot.py
+by the versions that have been updated within this repository.
+Delete the files
    - /ocelot/adaptors/genesis.pyc     
    - /ocelot/utils/xfel_utils.pyc     
    - /ocelot/gui/genesis_plot.pyc
