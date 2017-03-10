@@ -1,13 +1,16 @@
 ###### Output path #################################
-exp_dir	      '/scratch2b/qfi29231/results_OCELOT/'
+exp_dir	      '/scratch2b/qfi29231/results_OCELOT_single/'
 ###### Type of Launcher (Genesis v2 or v3) #########
 genesis_launcher	'genesis2.0'
 ###### Statistical runs ############################
-stat_run	   1
+stat_run	   3
+###### GENESIS input file ##########################
+in_gen 0
+gen_filename	gen_input.in
 ###### Time dependent flags       ##################
-shotnoise   0
+shotnoise   1
 itdp	1
-prad0	1e-11
+prad0	1e-12
 ###### Beam Energy and wavelength ##################
 xlamds	1.35076e-8
 gamma0	1.46871e3
@@ -48,6 +51,6 @@ rmax0	9
 ##### Scan parameters (flag 0 if there is no scan) #
 i_scan	   0
 parameter  'xlamds'
-init	   0e-9
-end	   100e-9
-n_scan	   10
+init	   50e-9 
+end	   110e-9
+n_scan	   4
