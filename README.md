@@ -41,11 +41,14 @@ Before the script is used, you need to replace the following scripts within ocel
   - /ocelot/adaptors/genesis.py
   - /ocelot/utils/xfel_utils.py
   - /ocelot/gui/genesis_plot.py
-by the versions that have been updated within this repository.
+
+by the versions that have been updated within this repository. 
+
 Delete the files
    - /ocelot/adaptors/genesis.pyc     
    - /ocelot/utils/xfel_utils.pyc     
    - /ocelot/gui/genesis_plot.pyc
+
 The script requires the input_file.in to be located within the same folder where the script is being run. The betamatch executable is copied from /scratch2b/qfi29231/betamatch_dir
    
    HMCC
