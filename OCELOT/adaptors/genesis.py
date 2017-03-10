@@ -1231,10 +1231,10 @@ def generate_input(up, beam, itdp=False):
     #printFelParameters(inp)
     return inp
 #### HMCC ##############################
-def write_input_file(filename, path, G_obj):
-    with open (os.path.join(path,filename),'w') as f:
-        f.write(G_obj.input())    
-    print('input file was created')
+#def write_input_file(filename, path, G_obj):
+#    with open (os.path.join(path,filename),'w') as f:
+#        f.write(G_obj.input())    
+#    print('input file was created')
 ########################################## 
 
         

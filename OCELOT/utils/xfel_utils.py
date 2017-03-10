@@ -182,7 +182,8 @@ def run(inp, launcher,readall=False,dfl_slipage_incl=True,assembly_ver='sys'):
         else: raise
     
     # create and fill necessary input files
-    open(inp.run_dir + '/lattice.inp','w').write( inp.lattice_str )
+    if (inp.magin !=0): #HMCC (running without creating lattice file, read input file)
+        open(inp.run_dir + '/lattice.inp','w').write( inp.lattice_str )
     open(inp.run_dir + '/tmp.cmd','w').write("tmp.gen\n")
     open(inp.run_dir + '/tmp.gen','w').write(inp.input())   
     #print ('    before writing /tmp.beam')
@@ -255,10 +256,11 @@ def run(inp, launcher,readall=False,dfl_slipage_incl=True,assembly_ver='sys'):
     os.system('rm ' + out_file +'.dpa.slice* 2>/dev/null')
     # print ('        done in %.2f seconds' % (time.time() - start_time))
     print ('      total time %.2f seconds' % (time.time() - assembly_time))
-    
-    g = readGenesisOutput(out_file,readall=readall)
-    
-    return g
+    if inp.type!='steady': #HMCC
+        g = readGenesisOutput(out_file,readall=readall)
+        return g
+    else:
+        pass
 
     
 def assemble(out_file,binary=1,remove=1,tailappend=0,ram=1):

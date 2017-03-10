@@ -8,6 +8,7 @@ import matplotlib
 #from matplotlib.figure import Figure
 #from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter #HMCC
 import numpy as np
 from numpy import *
 from ocelot.adaptors.genesis import *
@@ -117,6 +118,8 @@ def gen_outplot_evo(g, params=['und_quad','el_size','el_energy','el_bunching','r
     fig.subplots_adjust(hspace=0)
     
     ax=[]
+    colour = ['blue', 'red','green']#HMCC
+
     for index, param in enumerate(params):
         if len(ax)==0:
             ax.append(fig.add_subplot(len(params), 1, index+1))
@@ -124,19 +127,23 @@ def gen_outplot_evo(g, params=['und_quad','el_size','el_energy','el_bunching','r
             ax.append(fig.add_subplot(len(params), 1, index+1,sharex=ax[0]))
         #ax[-1]
         if param=='und_quad':
-            subfig_und_quad(ax[-1],g,legend)
+            colour0 = [colour[i] for i in range(2)]#HMCC
+            subfig_und_quad(ax[-1],g,legend,colour0)#HMCC
         elif param=='und':
             subfig_und(ax[-1],g,legend)
         elif param=='el_size':
-            subfig_el_size(ax[-1],g,legend)
+            colour0 = colour[0]#HMCC
+            subfig_el_size(ax[-1],g,legend,colour0)#HMCC
         elif  param=='el_energy':
             subfig_el_energy(ax[-1],g,legend)
         elif  param=='el_bunching':
             subfig_el_bunching(ax[-1],g,legend)
         elif  param=='rad_pow_en':
+
             subfig_rad_pow_en(ax[-1],g,legend)
         elif  param=='rad_pow':
-            subfig_rad_pow(ax[-1],g,legend)
+            colour0=colour[0]#HMCC
+            subfig_rad_pow(ax[-1],g,legend,colour0,log_flag=True)#HMCC
         elif  param=='rad_spec':
             subfig_rad_spectrum(ax[-1],g,legend)
         elif  param=='rad_size':
@@ -169,19 +176,21 @@ def gen_outplot_evo(g, params=['und_quad','el_size','el_energy','el_bunching','r
     
     return fig
 
-def subfig_und_quad(ax_und,g,legend):
+def subfig_und_quad(ax_und,g,legend,colour): # HMCC add legend and colour
 
     number_ticks=6
-    ax_und.plot(g.z, g.aw, 'b-',linewidth=1.5)
+    #ax_und.plot(g.z, g.aw, 'b-',linewidth=1.5)
+    ax_und.plot(g.z, g.aw, '-', color = colour[0], linewidth=1.5, label = legend) #HMCC
     ax_und.set_ylabel('K (rms)')
 
     ax_quad = ax_und.twinx()
-    ax_quad.plot(g.z, g.qfld, 'r-',linewidth=1.5)
-    ax_quad.set_ylabel('Quad')
+    #ax_quad.plot(g.z, g.qfld, 'r-',linewidth=1.5)
+    ax_quad.plot(g.z, g.qfld, '-.',color = colour[1],linewidth=1.5,label=legend) #HMCC
+    #ax_quad.set_ylabel('Quad',fontsize='8') #HMCC comment
     ax_quad.grid(False)
 
     ax_und.yaxis.major.locator.set_params(nbins=number_ticks)
-    ax_quad.yaxis.major.locator.set_params(nbins=number_ticks)
+    ax_quad.yaxis.major.locator.set_params(nbins=number_ticks) 
 
     if np.amax(g.aw)!=0:
         aw_tmp=np.array(g.aw)[np.array(g.aw)!=0]
@@ -190,9 +199,9 @@ def subfig_und_quad(ax_und,g,legend):
             ax_und.set_ylim([np.amin(aw_tmp)-diff/10,np.amax(aw_tmp)+diff/10])
     else:
         ax_und.set_ylim([0,1])
-    ax_und.tick_params(axis='y', which='both', colors='b')
+    ax_und.tick_params(axis='y', which='both', colors='b', labelsize='small' )#HMCC add labelsize 
     ax_und.yaxis.label.set_color('b')
-    ax_quad.tick_params(axis='y', which='both', colors='r')
+    ax_quad.tick_params(axis='y', which='both', colors='r',labelsize='small') #HMCC add labelsize
     ax_quad.yaxis.label.set_color('r')
 
 def subfig_und(ax_und,g,legend):
@@ -215,14 +224,17 @@ def subfig_und(ax_und,g,legend):
     ax_und.yaxis.label.set_color('b')
 
 
-def subfig_el_size(ax_size_tpos,g,legend):
+def subfig_el_size(ax_size_tpos,g,legend, colour):#HMCC (add legend and colour)
 
     number_ticks=6
     
-    ax_size_tpos.plot(g.z, np.average(g.xrms,axis=0,weights=g.I)*1e6, 'g-',g.z, np.average(g.yrms,axis=0,weights=g.I)*1e6, 'b-')
+   # ax_size_tpos.plot(g.z, np.average(g.xrms,axis=0,weights=g.I)*1e6, 'g-',g.z, np.average(g.yrms,axis=0,weights=g.I)*1e6, 'b-',label=legend)
+    ax_size_tpos.plot(g.z, np.average(g.xrms,axis=0,weights=g.I)*1e6, '-',color = colour)#HMCC
+    ax_size_tpos.plot(g.z, np.average(g.yrms,axis=0,weights=g.I)*1e6,'-.', color = colour,label=legend) #HMCC
     ax_size_tpos.set_ylabel('$\sigma_{x,y}$ [$\mu$m]')
 
-    ax_size_tpos.set_ylim(ymin=0)
+#    ax_size_tpos.set_ylim(ymin=0)
+    ax_size_tpos.set_ylim(0.5*np.amin(np.average(g.xrms,axis=0,weights=g.I)*1e6),2*np.amax(np.average(g.xrms,axis=0,weights=g.I)*1e6))#HMCC
     ax_size_tpos.yaxis.major.locator.set_params(nbins=number_ticks)
 
     
@@ -287,22 +299,34 @@ def subfig_rad_pow_en(ax_rad_pow,g,legend):
     ax_rad_pow.text(0.98, 0.02,'$P_{end}$= %.2e W\n$E_{end}$= %.2e J' %(np.amax(g.p_int[:,-1]),np.mean(g.p_int[:,-1],axis=0)*g('xlamds')*g('zsep')*g.nSlices/speed_of_light), fontsize=12, horizontalalignment='right', verticalalignment='bottom', transform = ax_rad_pow.transAxes)
 
 
-def subfig_rad_pow(ax_rad_pow,g,legend):
-    ax_rad_pow.plot(g.z, np.amax(g.p_int, axis=0), 'g-',linewidth=1.5)
+def subfig_rad_pow(ax_rad_pow,g,legend,colour,log_flag=True): # HMCC adding legend, colour,log_flag
+
+    import numpy as np
+    
+    frmt = ScalarFormatter(useOffset = False)#HMCC   
+    frmt.set_scientific(True)#HMCC
+   # ax_rad_pow.plot(g.z, np.amax(g.p_int, axis=0), 'g-',linewidth=1.5)
+    ax_rad_pow.plot(g.z, np.amax(g.p_int, axis=0), '-',color = colour,linewidth=1.5,label=legend) #HMCC
     ax_rad_pow.set_ylabel('P [W]')
-    ax_rad_pow.get_yaxis().get_major_formatter().set_useOffset(False)
-    ax_rad_pow.get_yaxis().get_major_formatter().set_scientific(True)
-    if np.amax(g.p_int)>0:
+    #ax_rad_pow.get_yaxis().get_major_formatter().set_useOffset(False) # HMCC comment
+    #ax_rad_pow.get_yaxis().get_major_formatter().set_scientific(True) # HMCC comment
+
+
+   
+  #  if np.amax(g.p_int)>0:Original
+    if log_flag==True: #HMCC
         ax_rad_pow.set_yscale('log')
+    else:
+        ax_rad_pow.set_yscale('linear')
     
     ax_rad_pow.grid(False, which="minor") 
     ax_rad_pow.tick_params(axis='y', which='both', colors='g')
     ax_rad_pow.yaxis.label.set_color('g')
-    ax_rad_pow.yaxis.get_offset_text().set_color(ax_rad_pow.yaxis.label.get_color())
-    # ax_rad_pow.set_ylim([1e5,1e11])
-    ax_rad_pow.text(0.98, 0.02,'$P_{end}$= %.2e W' %(np.amax(g.p_int[:,-1])), fontsize=12, horizontalalignment='right', verticalalignment='bottom', transform = ax_rad_pow.transAxes)
+    ax_rad_pow.yaxis.get_offset_text().set_color(ax_rad_pow.yaxis.label.get_color()) 
+    ax_rad_pow.yaxis.get_offset_text().set_size(10) # HMCC
+    #ax_rad_pow.set_ylim([10,1.2*np.amax(np.amax(g.p_int, axis=0))])#HMCC comment
+   # ax_rad_pow.text(0.98, 0.02,'$P_{end}$= %.2e W' %(np.amax(g.p_int[:,-1])), fontsize=12, horizontalalignment='right', verticalalignment='bottom', transform = ax_rad_pow.transAxes) HMCC comment
 
-    
     
 def subfig_rad_spectrum(ax_spectrum,g,legend):
         ax_spectrum.plot(g.z, np.amax(g.spec,axis=0), 'r-',linewidth=1.5)
@@ -980,7 +1004,7 @@ def gen_outplot_scanned_z(g, figsize=(8, 10), legend = True, fig_name = None, z=
     return fig
 
 
-def gen_outplot_dfl(dfl, out=None, z_lim=[], xy_lim=[], figsize=3, legend = True, phase = False, far_field=False, freq_domain=False, fig_name = None, auto_zoom=False, column_3d=True, savefig=False, showfig=False, return_proj=False, vartype_dfl=complex64):
+def gen_outplot_dfl(dfl, out=None, z_lim=[], xy_lim=[], figsize=3, legend = True, phase = False, far_field=False, freq_domain=False, fig_name = None, auto_zoom=False, column_3d=True, savefig=False, showfig=False, return_proj=False, vartype_dfl=complex64,filename=None):
 
     #dfl can be either object or the path to dfl file
     #out can be genesis output object
@@ -1332,7 +1356,10 @@ def gen_outplot_dfl(dfl, out=None, z_lim=[], xy_lim=[], figsize=3, legend = True
         if savefig==True:
             savefig='png'
         print'      suffix= ',suffix
-        fig.savefig(out.path+'_dfl'+suffix+'.'+str(savefig),format=savefig)
+        if filename==None:
+            fig.savefig(out.path+'_dfl'+suffix+'.'+str(savefig),format=savefig)
+        else:
+            fig.savefig(filename,format=savefig)#HMCC 30-09-2016
 
     print(('      done in %.2f seconds' % (time.time() - start_time)))
 
@@ -1366,7 +1393,7 @@ def gen_stat_plot(proj_dir,run_inp=[],stage_inp=[],param_inp=[],s_param_inp=['p_
     # dfl_power, dfl_spec, dfl_size, dfl_divergence 
     
 
-    import copy
+    import copy,os #HMCC add os
     dict_name={'p_int':'radiation power','energy': 'radiation pulse energy','el_e_spread': 'el.beam energy spread','el_energy': 'el.beam energy average','bunching': 'el.beam bunching','spec': 'radiation on-axis spectral density','dfl_spec':'total radiation spectral density','r_size':'radiation transv size','r_size_weighted':'radiation transv size (weighted)','xrms':'el.beam x size','yrms':'el.beam y size','error':'genesis simulation error','p_mid':'radiation power on-axis','phi_mid':'radiation phase on-axis','increment':'radiation power increment'}
     dict_unit={'p_int':'[W]','energy': '[J]','el_e_spread': '(gamma)','el_energy': '(gamma)','bunching': '','spec': '[arb.units]','dfl_spec': '[arb.units]','r_size':'[m]','xrms':'[m]','yrms':'[m]','error':''}
     
@@ -1383,21 +1410,30 @@ def gen_stat_plot(proj_dir,run_inp=[],stage_inp=[],param_inp=[],s_param_inp=['p_
 
     for stage in stage_range: #scan through stages
 
-        outlist=[GenesisOutput() for i in xrange(1000)]
+        #outlist=[GenesisOutput() for i in xrange(1000)]#HMCC comment
+        outlist=[]#HMCC
 
         if run_inp==[]:
             run_range=xrange(1000)
+        elif run_inp ==1:#HMCC
+            run_range=xrange(1)
         else:
             run_range=run_inp
 
         run_range_good=[]
 
-        for irun in run_range:
-            out_file=proj_dir+'run_'+str(irun)+'/run.'+str(irun)+'.s'+str(stage)+'.gout'
-            if os.path.isfile(out_file):
+        for irun,runr in enumerate(run_range):#HMCC
+            #out_file=proj_dir+'run_'+str(irun)+'/run.'+str(irun)+'.s'+str(stage)+'.gout'#HMCC comment
+            ip_s=[]#HMCC
+            ip_seed = [proj_dir+'scan_'+str(runr)+'/'+files for files in os.listdir(proj_dir+'scan_'+str(runr)) if files.startswith('ip_s')] # HMCC
+            for i_seed, ipseed in enumerate(ip_seed): #HMCC
+                out_file = [ipseed+'/'+files for files  in os.listdir(ipseed) if ((files.startswith('run.')) and (files.endswith('.gout')))] #HMCC
+                if os.path.isfile(out_file[0]):#HMCC
 #                try:
-                outlist[irun] = readGenesisOutput(out_file,readall=1)
-                run_range_good.append(irun)
+                    #outlist[irun] = readGenesisOutput(str(out_file),readall=1)#HMCC comment
+                    ip_s.append(readGenesisOutput(str(out_file[0]),readall=1))#HMCC
+            run_range_good.append(irun)#HMCC move 
+            outlist.append(ip_s)#HMCC
 #                except:
 #                    print('     could not read '+out_file)
         run_range=run_range_good
@@ -1414,8 +1450,8 @@ def gen_stat_plot(proj_dir,run_inp=[],stage_inp=[],param_inp=[],s_param_inp=['p_
     #        print(outlist[irun].sliceKeys)
 
         if param_inp==[]:
-            print(outlist[run_range[0]].sliceKeys_used)
-            param_range=outlist[run_range[0]].sliceKeys_used
+            print(outlist[run_range[0]][0].sliceKeys_used)#HMCC add the second index due to noise realisations
+            param_range=outlist[run_range[0]][0].sliceKeys_used #HMCC add the second index due to noise realisations
         else:
             param_range=param_inp
 
@@ -1438,31 +1474,33 @@ def gen_stat_plot(proj_dir,run_inp=[],stage_inp=[],param_inp=[],s_param_inp=['p_
             for s_ind in s_inp:
                 s_value=[]
                 s_fig_name='Z__'+'stage_'+str(stage)+'__'+dict_name.get(param,param).replace(' ','_').replace('.','_')+'__'+str(s_ind)
-                for irun in run_range:
-                    if not hasattr(outlist[irun],param):
-                        continue
-                    else:
-                        param_matrix=copy.deepcopy(getattr(outlist[irun],param))
-
-                    if len(param_matrix) == len(outlist[irun].z):
-                        s_value.append(param_matrix)
-                    else:
-                        if s_ind=='max':
-                            s_value.append(np.amax(param_matrix,axis=0))
-                        elif s_ind=='max_cur':
-                            s_value.append(param_matrix[outlist[irun].sn_Imax,:])
-                        elif s_ind=='mean':
-                            s_value.append(np.mean(param_matrix,axis=0))
+                for irun,runr in enumerate(run_range):#HMCC
+                    #for i_seed in xrange(1000):#HMCC comment
+                    for i_seed in xrange(len(outlist[0])):
+                        if not hasattr(outlist[irun][i_seed],param):#HMCC
+                            continue
                         else:
-                            si=np.where(outlist[irun].s<=s_ind)[-1][-1]
-                            s_value.append(param_matrix[si,:])
+                            param_matrix=copy.deepcopy(getattr(outlist[irun][i_seed],param))#HMCC
+
+                        if len(param_matrix) == len(outlist[irun][i_seed].z):#HMCC
+                            s_value.append(param_matrix)
+                        else:
+                            if s_ind=='max':
+                                s_value.append(np.amax(param_matrix,axis=0))
+                            elif s_ind=='max_cur':
+                                s_value.append(param_matrix[outlist[irun][i_seed].sn_Imax,:])#HMCC
+                            elif s_ind=='mean':
+                                s_value.append(np.mean(param_matrix,axis=0))
+                            else:
+                                si=np.where(outlist[irun][i_seed].s<=s_ind)[-1][-1]#HMCC
+                                s_value.append(param_matrix[si,:])
                 if s_value!=[]:
                     fig=plt.figure(s_fig_name)
                     fig.clf()
                     fig.set_size_inches(figsize,forward=True)
-                    fig=plt.plot(outlist[irun].z,swapaxes(s_value,0,1),'0.8', linewidth=1)
-                    fig=plt.plot(outlist[irun].z,s_value[0],'0.5', linewidth=1)
-                    fig=plt.plot(outlist[irun].z,mean(s_value,0),'k', linewidth=2)
+                    fig=plt.plot(outlist[irun][i_seed].z,swapaxes(s_value,0,1),'0.8', linewidth=1)#HMCC
+                    fig=plt.plot(outlist[irun][i_seed].z,s_value[0],'0.5', linewidth=1)#HMCC
+                    fig=plt.plot(outlist[irun][i_seed].z,mean(s_value,0),'k', linewidth=2)#HMCC
 
                     #fig[0].axes.get_yaxis().get_major_formatter().set_scientific(True)
                     #plt.ticklabel_format(style='sci')
@@ -1473,7 +1511,7 @@ def gen_stat_plot(proj_dir,run_inp=[],stage_inp=[],param_inp=[],s_param_inp=['p_
                         plt.savefig(saving_path+s_fig_name+'.'+savefig,format=savefig)
                     if saveval!=False:
                         print('      saving '+s_fig_name+'.txt')
-                        np.savetxt(saving_path+s_fig_name+'.txt', vstack([outlist[irun].z,mean(s_value,0),s_value]).T,fmt="%E", newline='\n',comments='')
+                        np.savetxt(saving_path+s_fig_name+'.txt', vstack([outlist[irun][0].z,mean(s_value,0),s_value]).T,fmt="%E", newline='\n',comments='')
         
         if z_param_inp==[]:
             z_param_range=param_range
@@ -1485,34 +1523,35 @@ def gen_stat_plot(proj_dir,run_inp=[],stage_inp=[],param_inp=[],s_param_inp=['p_
             for z_ind in z_inp:
                 z_value=[]
                 z_fig_name='S__'+'stage_'+str(stage)+'__'+dict_name.get(param,param).replace(' ','_').replace('.','_')+'__'+str(z_ind)+'__m'
-                for irun in run_range:
-                    if not hasattr(outlist[irun],param):
-                        break
-                    else:
-                        param_matrix=copy.deepcopy(getattr(outlist[irun],param))
-
-                    if len(param_matrix) == len(outlist[irun].z): #case if the array is 1D (no s/z matrix presented)
-                        break
-                    else:
-                        if z_ind=='end' or z_ind==inf:
-                            z_value.append(param_matrix[:,-1]) #after undulator
-                        elif z_ind=='start':
-                            z_value.append(param_matrix[:,0]) #before undulator
+                for irun,runr in enumerate(run_range):#HMCC
+                    for i_seed in xrange(len(outlist[0])):#HMCC 
+                        if not hasattr(outlist[irun][i_seed],param):#HMCC
+                            break
                         else:
-                            zi=np.where(outlist[irun].z<=z_ind)[-1][-1]
-                            z_value.append(param_matrix[:,zi])
+                            param_matrix=copy.deepcopy(getattr(outlist[irun][i_seed],param))#HMCC
+
+                        if len(param_matrix) == len(outlist[irun][i_seed].z): #case if the array is 1D (no s/z matrix presented) HMCC
+                            break
+                        else:
+                            if z_ind=='end' or z_ind==inf:
+                                z_value.append(param_matrix[:,-1]) #after undulator
+                            elif z_ind=='start':
+                                z_value.append(param_matrix[:,0]) #before undulator
+                            else:
+                                zi=np.where(outlist[irun][i_seed].z<=z_ind)[-1][-1]#HMCC
+                                z_value.append(param_matrix[:,zi])
                 if z_value!=[]:
                     fig=plt.figure(z_fig_name)
                     fig.clf()
                     fig.set_size_inches(figsize,forward=True)
                     if param=='spec':
-                        freq_scale=outlist[irun].freq_lamd#*1e9
+                        freq_scale=outlist[irun][0].freq_lamd#*1e9#HMCC
                         fig=plt.plot(freq_scale,swapaxes(z_value,0,1),'0.8')
                         fig=plt.plot(freq_scale,z_value[0],'0.5', linewidth=1)
                         fig=plt.plot(freq_scale,mean(z_value,0),'k', linewidth=2)
                         plt.xlabel('$\lambda$ [nm]')
                     else:
-                        s_scale=outlist[irun].s*1e6
+                        s_scale=outlist[irun][0].s*1e6#HMCC
                         fig=plt.plot(s_scale,swapaxes(z_value,0,1),'0.8')
                         fig=plt.plot(s_scale,z_value[0],'0.5', linewidth=1)
                         fig=plt.plot(s_scale,mean(z_value,0),'k', linewidth=2)
@@ -1524,9 +1563,9 @@ def gen_stat_plot(proj_dir,run_inp=[],stage_inp=[],param_inp=[],s_param_inp=['p_
                     if saveval!=False:
                         print('      saving '+z_fig_name+'.txt')
                         if param=='spec':
-                            np.savetxt(saving_path+z_fig_name+'.txt', vstack([outlist[irun].freq_lamd*1e9,mean(z_value,0),z_value]).T,fmt="%E", newline='\n',comments='')
+                            np.savetxt(saving_path+z_fig_name+'.txt', vstack([outlist[irun][0].freq_lamd*1e9,mean(z_value,0),z_value]).T,fmt="%E", newline='\n',comments='')#HMCC
                         else:
-                            np.savetxt(saving_path+z_fig_name+'.txt', vstack([outlist[irun].s*1e6,mean(z_value,0),z_value]).T,fmt="%E", newline='\n',comments='')
+                            np.savetxt(saving_path+z_fig_name+'.txt', vstack([outlist[irun][0].s*1e6,mean(z_value,0),z_value]).T,fmt="%E", newline='\n',comments='')#HMCC
 
         if dfl_param_inp!=[]:
             print('    processing DFL parameters '+str(dfl_param_inp))
@@ -1534,19 +1573,22 @@ def gen_stat_plot(proj_dir,run_inp=[],stage_inp=[],param_inp=[],s_param_inp=['p_
         for param in dfl_param_inp:
             dfl_value=[]
             dfl_fig_name='DFL__'+'stage_'+str(stage)+'__'+param.replace(' ','_').replace('.','_')+'__end'
-            for irun in run_range:
-                dfl_filename=proj_dir+'run_'+str(irun)+'/run.'+str(irun)+'.s'+str(stage)+'.gout.dfl'
-                dfl=readRadiationFile(dfl_filename, npoints=outlist[irun]('ncar'),debug=1)
+            for irun,runr in enumerate(run_range):#HMCC             
+                dfl_filename = [proj_dir+'scan_'+str(irun)+'/'+files for files in os.listdir(proj_dir+'scan_'+str(irun)) if files.startswith('ip_s')]#HMCC
+                dfl_filename = [dfl_filename[0]+'/'+files for files in os.listdir(dfl_filename[0]) if files.endswith('gout.dfl')]#HMCC
+                dfl_filename =str(dfl_filename[0])#HMCC
+                #dfl_filename=proj_dir+'run_'+str(irun)+'/run.'+str(irun)+'.s'+str(stage)+'.gout.dfl'#HMCC comment
+                dfl=readRadiationFile(dfl_filename, npoints=outlist[irun][0]('ncar'),debug=1)#HMCC
                 if dfl.shape[0]!=1:
                     ncar_z=dfl.shape[0]
-                    leng_z=outlist[irun]('xlamds')*outlist[irun]('zsep')*ncar_z
+                    leng_z=outlist[irun][0]('xlamds')*outlist[irun][0]('zsep')*ncar_z#HMCC
                     if param=='dfl_spec':
                         spec=np.fft.ifftshift(np.fft.fft(dfl,axis=0),0)/sqrt(ncar_z) #
                         spec=abs(spec)**2
                         spec=sum(spec,(1,2))
                         dfl_value.append(spec)
                         dk=2*pi/leng_z
-                        k=2*pi/outlist[irun]('xlamds')
+                        k=2*pi/outlist[irun][0]('xlamds') #HMCC
                         freq_scale = 2*pi/np.linspace(k-dk/2*ncar_z, k+dk/2*ncar_z, ncar_z)*1e9
                         print('      spectrum calculated')
                 
