@@ -115,9 +115,9 @@ class MpiLauncher(Launcher):
         print 'launching mpi job'
         ##THIS LINE AND THE NEXT CHANGED BY GG ## command = 'mkdir -p '+ self.dir + '; ' + 'cd '+ self.dir + '; '+ "mpirun " + str(self.mpiParameters) + " -n " + str(self.nproc) + " " + self.program
         ##### HMCC #####
-        if self.program is 'genesis2.0':
+        if self.program == "genesis2.0":
             command_genesis = 'echo'+ " "+self.filename + " |mpiexec -np 25" + str(self.mpiParameters) + " " + self.program
-        elif self.program is 'genesis3.2.1':
+        elif self.program == "genesis3.2.1":
             command_genesis = "mpirun -np 25" + str(self.mpiParameters) +" " +self.program + " " + self.filename
         command = 'mkdir -p '+ self.dir + '; ' + 'cd '+ self.dir + '; ' + command_genesis
         #command = 'mkdir -p '+ self.dir + '; ' + 'cd '+ self.dir + '; '+ 'echo'+ " "+self.filename + " |mpiexec -np 25" + str(self.mpiParameters) + " " + self.program #HMCC

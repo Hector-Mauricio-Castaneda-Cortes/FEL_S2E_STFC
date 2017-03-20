@@ -104,9 +104,8 @@ class MpiLauncher(Launcher):
         self.program = ""
         self.nproc = 0
         self.mpiParameters = ""
-#HMCC 
-        self.filename = 'tmp.gen'
-#        
+        self.filename='tmp.gen'
+  
     def prepare(self):
         return False
 
