@@ -18,6 +18,8 @@ HMCC: 08-03-17: Adding the postprocessing function from OCELOT to plot the resul
 HMCC: 09-03-17: Adding the function gen_outplot_single in order to plot scan and single runs. Calling the function gen_outplot_statistics to plot statistical runs. Add support to import and read existent
                 GENESIS input files by using the implemented function GEN_input_file. At the moment, for single runs, the gen_outplot_single can only plot results at the end of the undulator, taking the 
                 average over noise realisations and the maximum (peak power)
+HMCC: 17-03-17: Fixing bug of scan. Adding aw0 scan to quad scan (done in Steady State). Adding the reading of the flag in_gen into the read_file function so that the input object can be filled in by calling the 
+                read_GEN_input_file function if there is an existent GENESIS input file available.
 
 
 '''
@@ -123,6 +125,17 @@ def read_input_file(f_path):
             elif splitLine[0].startswith('gen_filename'):
                 A_content['gen_filename']= str(splitLine[-1])
     f.close()
+    if A_content['in_gen']==0:
+        print('++++++++++ No GENESIS input file ++++++++++++')
+        pass
+    else:
+        print('++++++++++ GENESIS input file {} ++++++++++++'.format(A_content['gen_filename']))
+        A_inp = read_GEN_input_file(A_content['gen_filename'])
+        for attr in A_inp.__dict__.keys():
+            if (attr in A_arg_int) or (attr in A_arg_float): 
+                A_content[attr]=getattr(A_inp,attr)
+            else:
+                continue
     return A_content
     
 def undulator_design(A_contents):
@@ -416,7 +429,7 @@ def main():
     A_simul = ['zsep','npart','ncar','delz','dmpfld','fbess0','dgrid','rmax0']
     A_td = ['itdp','prad0','shotnoise']
     A_und = ['quadd', 'quadf','fl','drl']
-    
+    print('++++ {}+++++'.format(A_input['nslice']))
     #set simulation parameters by calling the read_input_file function
     exp_dir=A_input['exp_dir'][1:-1]+'/'
     print('++++ Output Path {} ++++++'.format(exp_dir))
@@ -432,7 +445,7 @@ def main():
             run_ids= range(1)
             s_scan = range(int(A_input['init']),int(A_input['end']),int(np.ceil((A_input['end']-A_input['init'])/(A_input['n_scan']-1))))
             print('++++ Quad scan, parameter  {} ++++++'.format(A_input['parameter']))
-        elif (A_input['parameter']=='xlamds'):
+        elif (A_input['parameter']=='xlamds') or (A_input['parameter']=='aw0'):
             run_ids= range(1)
             s_scan = np.linspace(A_input['init'],A_input['end'],A_input['n_scan'])
             print('++++ Quad scan, parameter  {} ++++++'.format(A_input['parameter']))
@@ -441,24 +454,19 @@ def main():
             num = A_input['stat_run']
             run_ids = xrange(0,num)
             print('++++ Number of noise realisations {} ++++++'.format(num))  
-    #Read from an external input file or use lattice file
-    if (A_input['in_gen']==1):
-        inp = read_GEN_input_file(str(A_input['gen_filename']))
-    elif (A_input['in_gen']==0):
         # setting the undulator design( Magnetic Lattice)
-        A_undulator = undulator_design(A_input)
+    A_undulator = undulator_design(A_input)
     
         # fill in the beam object
-        A_beam = BeamDefinition(A_input)
-        if (A_input['itdp']==0):
-            print('++++ Steady State run +++++')
-            i_tdp = False
-        elif (A_input['itdp']==1):
-            i_tdp = True
+    A_beam = BeamDefinition(A_input)
+    if (A_input['itdp']==0):
+        print('++++ Steady State run +++++')
+        i_tdp = False
+    elif (A_input['itdp']==1):
+        i_tdp = True
      
         # Generate input object
-        inp = generate_input(A_undulator['Undulator Parameters'],A_beam,itdp=i_tdp)
-
+    inp = generate_input(A_undulator['Undulator Parameters'],A_beam,itdp=i_tdp)
     # Overwrite the simulation attributes of the input object with the ones defined in the input file
     for n_simul in A_simul:
         setattr(inp,str(n_simul),A_input.get(str(n_simul)))
@@ -475,15 +483,13 @@ def main():
                     pass
                 else: 
                     raise
-            #if A_input['in_gen']==0:
-
 
             if A_input['i_scan']==1:
                 if (A_input['parameter'] in A_simul):
                     setattr(inp,A_input['parameter'][1:-1],n_par)
                     inp.lattice_str = generate_lattice(A_undulator['Magnetic Lattice'],unit = A_undulator['Undulator Parameters'].lw,energy=A_beam.E)
                     print(' ++++++++++ Scan {} of the parameter {}'.format(n_par, A_input['parameter']))
-                elif (A_input['parameter'] in A_und) or (A_input['parameter'] == 'xlamds') : 
+                elif (A_input['parameter'] in A_und) or (A_input['parameter'] == 'xlamds') or (A_input['parameter'] == 'aw0'): 
                     print(' ++++++++++ Steady State Scan {} of the parameter {} Quad optimisation'.format(n_par, A_input['parameter']))
                     setattr(inp,'type','steady')
                     setattr(inp,'itdp',0)
@@ -491,7 +497,14 @@ def main():
                     setattr(inp,'prad0',10)
                     if A_input['parameter'] in A_und:
                         n_par = int(n_par)
-                        A_input[str(A_input['parameter'])]=n_par
+                        if A_input['parameter'] in A_und[0:2]:
+                            for n_p in A_und[0:2]:
+                                if n_p =='quadd':
+                                    A_input[str(n_p)]=-n_par
+                                else:
+                                    A_input[str(n_p)]=n_par
+                        else:
+                            A_input[str(A_input['parameter'])]=n_par
                         A_undulator=undulator_design(A_input)
                         inp.lattice_str = generate_lattice(A_undulator['Magnetic Lattice'],unit = A_undulator['Undulator Parameters'].lw,energy=A_beam.E)
                         inp = beta_matching(inp,inp.run_dir)   
