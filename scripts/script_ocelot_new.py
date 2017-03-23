@@ -20,6 +20,7 @@ HMCC: 09-03-17: Adding the function gen_outplot_single in order to plot scan and
                 average over noise realisations and the maximum (peak power)
 HMCC: 17-03-17: Fixing bug of scan. Adding aw0 scan to quad scan (done in Steady State). Adding the reading of the flag in_gen into the read_file function so that the input object can be filled in by calling the 
                 read_GEN_input_file function if there is an existent GENESIS input file available.
+HMCC: 22/03/17  Fixing bug of ntail parameter after creating the input object (ntail was not being read). Add support to flat-top current distributions 
 
 
 '''
@@ -98,7 +99,7 @@ def read_input_file(f_path):
         f_path=f_path
     A_dir = [files for files in os.listdir(f_path) if files.endswith('input_file.in')]
     A_arg_int = ['stat_run',',ipseed','nsec','nwig','zsep','fl','dl','drl',
-                 'npart','nslice','shotnoise','delz','dmpfld',
+                 'npart','ntail','shotnoise','delz','dmpfld',
                  'itdp', 'delz','ncar','iwityp','nslice','fbess0','gauss_fl',
                  'rmax0','i_scan','n_scan','in_gen']
     A_arg_float = ['xlamd','xlamds','gamma0','aw0','awd','quadf','quadd',
@@ -159,14 +160,20 @@ def undulator_design(A_contents):
     quadf=A_contents['quadf']
     quadd=A_contents['quadd']
     nsec=A_contents['nsec']
-    aw0 = A_contents['aw0']
     drl = int((fl+drl-nwig)/2)-1
+    if A_contents['iwityp']==0:
+        kw0=float(A_contents['aw0'])
+    elif A_contents['iwityp']==1:
+        kw0=float(A_contents['aw0']*sqrt(2))
    
    # Instance of the Undulator object
-    und= Undulator(lperiod=xlamd, nperiods=nwig, Kx=aw0*sqrt(0.5))
+    und= Undulator(lperiod=xlamd, nperiods=nwig, Kx=kw0)
    
    # Calculation of the Undulator parameter from the Photon and Beam Energies)
-    und.Kx=Ephoton2K(E_photon,und.lperiod,E_beam)
+    if A_contents['i_scan']==1 and A_contents['parameter']=='aw0':
+        und.Kx = kw0
+    else:
+        und.Kx=Ephoton2K(E_photon,und.lperiod,E_beam)  
    
    # Drift sections (if they are the same)
     d_rift = Drift(l=drl*und.lperiod)
@@ -209,7 +216,7 @@ def beta_matching(inp,f_path):
 
     A_params = ['rxbeam', 'rybeam','alphax','alphay','emitx','emity']
     inp0 = inp
-    os.system('cp /scratch2b/qfi29231/betamatch_dir/betamatch %s' %(f_path))
+    os.system('cp /scratch2b/qfi29231/betamatch_dir/betamatch %s' %(f_path+'/betamatch'))
     os.chdir(f_path)
     with open(f_path+'/mod_file.in','w') as f:
         f.write(inp0.input())
@@ -252,21 +259,21 @@ def gen_outplot_single(proj_dir,run_inp= [], itdp = True,savefig=True):
         proj_dir+='/'
     if run_inp==[]:
         run_range=xrange(1000)
-    elif run_inp ==1:
-        run_range=xrange(1)
+    #elif run_inp ==1:
+     #   run_range=xrange(1)
     else:
         run_range=run_inp
     if itdp ==True:
-        param_inp = ['spec','bunching','el_spread','xrms','yrms']
+        param_inp = ['energy','spec','bunching','el_spread','xrms','yrms']
         s_inp=['max','mean']
-        z_inp=['end'] 
+        z_inp=[0,'end'] 
         n_seeds = len([proj_dir+'scan_'+str(run_range[0])+'/'+files for files in os.listdir(proj_dir+'scan_'+str(run_range[0])) if files.startswith('ip_s')])
         n_totl=int(n_seeds)*int(len(run_range))
     else:
         param_inp=['el_e_spread','bunching','xrms','yrms'] 
-        z_inp=['end']
+        z_inp=[0,'end']
         s_inp=['max','mean']
-        n_totl = int(len(run_range))
+        n_totl = len(run_range)
     param_range = param_inp
     
     outlist=[]  
@@ -285,7 +292,6 @@ def gen_outplot_single(proj_dir,run_inp= [], itdp = True,savefig=True):
     for i_run,runr in enumerate(run_range):
         ip_s=[]
         ip_seed = [proj_dir+'scan_'+str(runr)+'/'+files for files in os.listdir(proj_dir+'scan_'+str(runr)) if files.startswith('ip_s')]
-        colourr = colour[i_run]
         for i_seed, ipseed in enumerate(ip_seed):
             out_file = [ipseed+'/'+files for files  in os.listdir(ipseed) if ((files.startswith('run.')) and (files.endswith('.gout')))]
             if os.path.isfile(out_file[0]):
@@ -295,7 +301,7 @@ def gen_outplot_single(proj_dir,run_inp= [], itdp = True,savefig=True):
             text_leg = 'Scan ='+str(runr)+' ip_seed = '+str(ipseed[ipseed.find('ip_seed_')+8:])
             text_l.append(text_leg)
            # colourr = colour[i_seed]
-            fig=subfig_rad_pow(ax,g,text_leg,colourr, log_flag=False)
+            fig=subfig_rad_pow(ax,g,text_leg,colour[i_run], log_flag=False)
         run_range_good.append(i_run)
         outlist.append(ip_s)
     run_range=run_range_good
@@ -311,7 +317,7 @@ def gen_outplot_single(proj_dir,run_inp= [], itdp = True,savefig=True):
     for tick in ax.xaxis.get_major_ticks():
         tick.label.set_fontsize('8')
     ax.grid(True)
-    lgd = plt.legend(loc=9,bbox_to_anchor=(1.11,1),prop={'size':4.5})
+    lgd = plt.legend(loc=9,bbox_to_anchor=(1.01,0.9),prop={'size':4.5})
     art.append(lgd)
 
     if savefig!=False:
@@ -375,7 +381,7 @@ def gen_outplot_single(proj_dir,run_inp= [], itdp = True,savefig=True):
                 for i_seed in xrange(len(outlist[0])):
                     #colourr = colour[i_seed]
                     #text_leg =text_l[i_seed]
-                    if not hasattr(outlist[irun][i_seed],'s'):
+                    if not hasattr(outlist[irun][i_seed],'s') or (itdp==False):
                            print('Steady state run')
                            break
                     elif not hasattr(outlist[irun][i_seed],param):#HMCC
@@ -393,7 +399,7 @@ def gen_outplot_single(proj_dir,run_inp= [], itdp = True,savefig=True):
                         else:
                             zi=np.where(outlist[irun][i_seed].z<=z_ind)[-1][-1]
                             z_value=param_matrix[:,zi]
-                    if hasattr(outlist[irun][i_seed],'s'):
+                    if hasattr(outlist[irun][i_seed],'s') or (itdp==True):
                         if param=='spec':
                             freq_scale=outlist[irun][i_seed].freq_lamd#*1e9#HMCC
                             fig=plt.plot(freq_scale,z_value,'0.8',color = colourr,label=text_leg)
@@ -424,12 +430,11 @@ def main():
    
     # Reading the input file
 
-    A_input = read_input_file(os.getcwd()+'/')
-    A_beam = ['gamma0','curlen','curpeak','delgam','rxbeam','rybeam','emitx','emity','alphax','alphay','nslice']
-    A_simul = ['zsep','npart','ncar','delz','dmpfld','fbess0','dgrid','rmax0']
+    A_input = read_input_file(os.getcwd()+'/') 
+    A_bbeam = ['gamma0','curlen','curpeak','delgam','rxbeam','rybeam','emitx','emity','alphax','alphay','xbeam','ybeam','pxbeam','pybeam']
+    A_simul = ['npart','ncar','zsep','delz','dmpfld','fbess0','dgrid','rmax0','xkx','xky','iwityp']
     A_td = ['itdp','prad0','shotnoise']
-    A_und = ['quadd', 'quadf','fl','drl']
-    print('++++ {}+++++'.format(A_input['nslice']))
+    A_und = ['quadd', 'quadf','fl','dl','drl','nsec','nwig','aw0']
     #set simulation parameters by calling the read_input_file function
     exp_dir=A_input['exp_dir'][1:-1]+'/'
     print('++++ Output Path {} ++++++'.format(exp_dir))
@@ -443,9 +448,12 @@ def main():
     elif (A_input['i_scan']!=0):
         if (A_input['parameter'] in A_und):
             run_ids= range(1)
-            s_scan = range(int(A_input['init']),int(A_input['end']),int(np.ceil((A_input['end']-A_input['init'])/(A_input['n_scan']-1))))
+            if A_input['parameter'] != 'aw0':
+                s_scan = range(int(A_input['init']),int(A_input['end']),int(np.ceil((A_input['end']-A_input['init'])/(A_input['n_scan']-1))))
+            else:
+                s_scan = np.linspace(A_input['init'],A_input['end'],A_input['n_scan'])
             print('++++ Quad scan, parameter  {} ++++++'.format(A_input['parameter']))
-        elif (A_input['parameter']=='xlamds') or (A_input['parameter']=='aw0'):
+        elif (A_input['parameter']=='xlamds'):
             run_ids= range(1)
             s_scan = np.linspace(A_input['init'],A_input['end'],A_input['n_scan'])
             print('++++ Quad scan, parameter  {} ++++++'.format(A_input['parameter']))
@@ -468,8 +476,26 @@ def main():
         # Generate input object
     inp = generate_input(A_undulator['Undulator Parameters'],A_beam,itdp=i_tdp)
     # Overwrite the simulation attributes of the input object with the ones defined in the input file
-    for n_simul in A_simul:
-        setattr(inp,str(n_simul),A_input.get(str(n_simul)))
+    for in_put in A_input:
+        if (in_put in A_simul) or (in_put in A_und) or (in_put in A_td):
+            setattr(inp,in_put, A_input[in_put])
+        else:
+            continue
+        
+    # Set the object for a flat-top or Gaussian Current distribution
+    if int(A_input['i_profile'])==1:
+        setattr(inp,'nslice',8*int(inp.curlen/inp.zsep/inp.xlamds))
+        setattr(inp,'ntail',-getattr(inp,'nslice')/2)
+    elif int(A_input['i_profile'])==0:
+        setattr(inp,'nslice',int(inp.curlen/inp.zsep/inp.xlamds))
+        setattr(inp,'curlen',-getattr(inp,'curlen'))
+        setattr(inp,'ntail',0)
+    else:
+        print('++++ Profile not set to be square (i_profile = 0) or Gaussian (i_profile=1) +++++++++++')
+        return
+
+    # Running over noise realisations and/or scan parameters
+
     for n_par in s_scan:
         for run_id in run_ids:
             inp.runid = run_id
@@ -489,32 +515,33 @@ def main():
                     setattr(inp,A_input['parameter'][1:-1],n_par)
                     inp.lattice_str = generate_lattice(A_undulator['Magnetic Lattice'],unit = A_undulator['Undulator Parameters'].lw,energy=A_beam.E)
                     print(' ++++++++++ Scan {} of the parameter {}'.format(n_par, A_input['parameter']))
-                elif (A_input['parameter'] in A_und) or (A_input['parameter'] == 'xlamds') or (A_input['parameter'] == 'aw0'): 
+                elif (A_input['parameter'] in A_und) or (A_input['parameter'] == 'xlamds'): 
                     print(' ++++++++++ Steady State Scan {} of the parameter {} Quad optimisation'.format(n_par, A_input['parameter']))
                     setattr(inp,'type','steady')
                     setattr(inp,'itdp',0)
                     setattr(inp,'shotnoise',0)
                     setattr(inp,'prad0',10)
-                    if A_input['parameter'] in A_und:
-                        n_par = int(n_par)
-                        if A_input['parameter'] in A_und[0:2]:
-                            for n_p in A_und[0:2]:
-                                if n_p =='quadd':
-                                    A_input[str(n_p)]=-n_par
-                                else:
-                                    A_input[str(n_p)]=n_par
-                        else:
+                    if (A_input['parameter'] in A_und): 
+                        if A_input['parameter'] == 'aw0':
                             A_input[str(A_input['parameter'])]=n_par
-                        A_undulator=undulator_design(A_input)
-                        inp.lattice_str = generate_lattice(A_undulator['Magnetic Lattice'],unit = A_undulator['Undulator Parameters'].lw,energy=A_beam.E)
-                        inp = beta_matching(inp,inp.run_dir)   
+                        else:
+                            n_par = int(n_par)
+                            if A_input['parameter'] in A_und[0:2]:
+                                for n_p in A_und[0:2]:
+                                    if n_p =='quadd':
+                                        A_input[str(n_p)]=n_par
+                                    else:
+                                        A_input[str(n_p)]=n_par
+                            else:
+                                A_input[str(A_input['parameter'])]=n_par
                     else:
                         n_par = float(n_par) 
                         A_input[str(A_input['parameter'])]=n_par
-                        A_undulator=undulator_design(A_input)
-                        inp.lattice_str = generate_lattice(A_undulator['Magnetic Lattice'],unit = A_undulator['Undulator Parameters'].lw,energy=A_beam.E)
-                else:
+                    A_undulator=undulator_design(A_input)
                     inp.lattice_str = generate_lattice(A_undulator['Magnetic Lattice'],unit = A_undulator['Undulator Parameters'].lw,energy=A_beam.E)
+                    inp = beta_matching(inp,inp.run_dir)
+                else: 
+                    inp.lattice_str = generate_lattice(A_undulator['Magnetic Lattice'],unit = A_undulator['Undulator Parameters'].lw,energy=A_beam.E)                    
             else:
                 inp.lattice_str = generate_lattice(A_undulator['Magnetic Lattice'],unit = A_undulator['Undulator Parameters'].lw,energy=A_beam.E)
             launcher = get_genesis_launcher(A_input['genesis_launcher'][1:-1])

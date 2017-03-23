@@ -1,9 +1,9 @@
 ###### Output path #################################
-exp_dir	      '/scratch2b/qfi29231/results__old_noise/'
+exp_dir	      '/scratch2b/qfi29231/results_dev_single/'
 ###### Type of Launcher (Genesis v2 or v3) #########
 genesis_launcher	'genesis2.0'
 ###### Statistical runs ############################
-stat_run	   3
+stat_run	   1
 ###### GENESIS input file ##########################
 in_gen 0
 gen_filename	gen_input.in
@@ -28,6 +28,7 @@ iwityp	1
 xkx	0.5
 xky	0.5
 ##### Beam parameters #############################
+i_profile  1
 curlen	2.0944e-5
 curpeak	430
 delgam	1.357
@@ -52,6 +53,6 @@ rmax0	9
 ##### Scan parameters (flag 0 if there is no scan) #
 i_scan	   0
 parameter  'aw0'
-init	   0.772
-end	   0.791
-n_scan	   6
+init	   12
+end	   25
+n_scan	   10
