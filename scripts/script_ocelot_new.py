@@ -74,8 +74,8 @@ def read_GEN_input_file(filename):
                       or str(splitLine[0]).startswith('ffspec') or str(splitLine[0]).startswith('convharm') 
                       or str(splitLine[0]).startswith('multconv')):
                     val_attr = int(float(splitLine[-1].replace('=',"")))
-                elif str(splitLine[0]).startswith('xk') :
-                    val_attr = int(float(splitLine[-1].replace('=',"")))
+                elif (str(splitLine[0])=='xkx') or (str(splitLine[0])=='xky')  :
+                    val_attr = float(splitLine[-1].replace('=',""))
                 elif (splitLine[0].startswith('outputfile')):
                     continue
                 elif (splitLine[0].startswith('wcoefz')):
